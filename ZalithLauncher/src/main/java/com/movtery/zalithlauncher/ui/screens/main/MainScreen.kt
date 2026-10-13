@@ -88,6 +88,7 @@ import com.movtery.zalithlauncher.ui.components.TextRailItem
 import com.movtery.zalithlauncher.ui.guide.sendStartGuideOnce
 import com.movtery.zalithlauncher.ui.screens.BackStackNavKey
 import com.movtery.zalithlauncher.ui.screens.NestedNavKey
+import com.movtery.zalithlauncher.game.mcsmp.McsmpBootstrap
 import com.movtery.zalithlauncher.ui.screens.NormalNavKey
 import com.movtery.zalithlauncher.ui.screens.TitledNavKey
 import com.movtery.zalithlauncher.ui.screens.content.AccountManageScreen
@@ -526,13 +527,26 @@ private fun NavigationUI(
             popTransitionSpec = rememberTransitionSpec(),
             entryProvider = entryProvider {
                 entry<NormalNavKey.LauncherMain> {
+                    McsmpSetupHost(onReady = {
+                        McsmpBootstrap.findVersion()?.let { v ->
+                            eventViewModel.sendEvent(
+                                EventViewModel.Event.Launch.PlayServer(v, McsmpBootstrap.SERVER_ADDRESS)
+                            )
+                        }
+                    })
                     LauncherScreen(
                         backStackViewModel = screenBackStackModel,
                         navigateToVersions = navigateToVersions,
                         onLaunchGame = { version ->
-                            eventViewModel.sendEvent(
-                                EventViewModel.Event.Launch.Game(version)
-                            )
+                            //MCSMP TR: oynat tuşu her zaman doğrudan sunucuya sokar
+                            val target = (version ?: VersionsManager.currentVersion.value)?.takeIf { it.isValid() }
+                            if (target != null) {
+                                eventViewModel.sendEvent(
+                                    EventViewModel.Event.Launch.PlayServer(target, McsmpBootstrap.SERVER_ADDRESS)
+                                )
+                            } else {
+                                eventViewModel.sendEvent(EventViewModel.Event.Launch.Game(version))
+                            }
                         },
                         onQuickPlayServer = { version, address ->
                             val target = (version ?: VersionsManager.currentVersion.value)?.takeIf { it.isValid() }
